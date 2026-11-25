@@ -1,5 +1,11 @@
 # sfdigest — Salesforce setup change digest
 
+> **Early release (0.1.0).** Tested on a small number of orgs so far. It only reads
+> from your org, but expect rough edges: flags that are noise, changes it should have
+> flagged, wording that is unclear. Feedback is very welcome: please
+> [open an issue](https://github.com/porwiszek/sfdc_digest/issues). Describe what you
+> saw rather than pasting your digest, which contains your org's usernames and changes.
+
 A small, free, local tool that answers one question: **what changed in my Salesforce
 org's Setup lately, and which changes should I look at?**
 
@@ -18,12 +24,30 @@ sent to any service and no AI model is used.
 
 You need Python 3.12+, [uv](https://docs.astral.sh/uv/) and the Salesforce CLI (`sf`).
 
+Log in to your org once:
+
 ```bash
-uv sync                                    # install
-sf org login web --alias my-org            # authenticate (once)
-uv run sfdigest run --org my-org           # last 7 days
-uv run sfdigest run --org my-org --days 30 # up to 180
+sf org login web --alias my-org
 ```
+
+Then run it without installing anything, in a folder of your choice:
+
+```bash
+uvx --from git+https://github.com/porwiszek/sfdc_digest sfdigest run --org my-org           # last 7 days
+uvx --from git+https://github.com/porwiszek/sfdc_digest sfdigest run --org my-org --days 30 # up to 180
+```
+
+Or clone the repository, if you want to read the code first:
+
+```bash
+git clone https://github.com/porwiszek/sfdc_digest.git
+cd sfdc_digest
+uv sync
+uv run sfdigest run --org my-org
+```
+
+The snapshot is written under `snapshots/` and the digest under `reports/`, in the
+folder you run it from. Both contain your org's data; keep them private.
 
 Output, under `reports/<snapshot>/`:
 
