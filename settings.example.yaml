@@ -1,0 +1,23 @@
+# Optional. sfdigest works without a settings file; copy this to settings.yaml
+# (gitignored) only to change what is flagged.
+
+org_label: ""          # name shown on the digest; empty = the org's own name
+
+# Usernames of integration (system) users. A setup change made by one of them is
+# flagged, because integration users should not change configuration.
+integration_users: []
+
+# Granting one of these permissions is flagged.
+privileged_permissions: [ModifyAllData, ViewAllData, ManageUsers, AuthorApex, CustomizeApplication, ApiEnabled]
+
+# Any change in these Setup areas is flagged. Names as they appear in the digest's Area column.
+security_sections: [Session Settings, Security Controls, Identity Verification, Password Policies, Network Access, Single Sign-On Settings, Login Access Policies]
+connected_app_sections: [External Client Application, Connected Apps, Manage Connected Apps]
+
+# Salesforce's own release automation; counted separately and never flagged.
+automated_actions: [BlackTabFrameworkActionRun]
+
+# Usernames starting with one of these are Salesforce's Automated Process user. Its
+# changes, and changes recorded with no user, are counted separately, not listed,
+# unless one of the rules above flags them.
+automated_user_prefixes: ["autoproc@"]

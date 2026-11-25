@@ -1,0 +1,28 @@
+# Org data and local settings: never commit (see CLAUDE.md)
+snapshots/
+reports/
+settings.yaml
+
+# Private working notes
+CLAUDE.md
+.claude/
+*.token
+.env
+.env.*
+.sfdx/
+.sf/
+
+# Python and tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/

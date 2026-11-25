@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salesforce setup changes · {{ label }}</title>
+<style>
+  :root {
+    --ink: #1c2230; --muted: #5d6677; --line: #dfe3ea; --bg: #fbfbfc; --card: #fff; --accent: #1f3a5f;
+    --fail: #b42318; --fail-bg: #fdecea; --pass: #1e7a46; --pass-bg: #e7f5ec;
+    --error: #8a4b00; --error-bg: #fff3e0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 40px 24px 80px; }
+  header.cover { border-bottom: 3px solid var(--accent); padding-bottom: 18px; margin-bottom: 8px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); margin: 0; }
+  h1 { font-size: 28px; margin: 4px 0 2px; }
+  h2 { font-size: 20px; margin: 44px 0 14px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+  h3 { font-size: 16px; margin: 24px 0 8px; }
+  .sub { color: var(--muted); margin: 0; }
+  a { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+  td.num, th.num { text-align: right; white-space: nowrap; width: 90px; }
+  td.when { white-space: nowrap; }
+  .headline { background: var(--card); border-left: 4px solid var(--accent); padding: 12px 16px; margin: 0 0 18px; }
+  .headline p { margin: 0 0 4px; }
+  .headline p:first-child { font-size: 17px; font-weight: 600; }
+  .why { color: var(--fail); font-weight: 600; }
+  .zero { color: #b8bec9; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .bar { display: inline-block; height: 10px; background: var(--accent); border-radius: 2px; vertical-align: middle; }
+  .ev { overflow-x: auto; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
+  .warn { background: var(--fail-bg); color: var(--fail); border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+  .note { background: var(--error-bg); color: var(--error); border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+  .note ul, .warn ul { margin: 6px 0 0; padding-left: 20px; }
+  .ok { background: var(--pass-bg); color: var(--pass); border-radius: 8px; padding: 10px 16px; margin: 12px 0; }
+  .next { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 18px 14px; }
+  details summary { cursor: pointer; color: var(--muted); margin: 8px 0; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+  @media print { body { background: #fff; } details { display: block; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="cover">
+    <p class="eyebrow">Salesforce setup changes{% if d.days %} · last {{ d.days }} day{{ "" if d.days == 1 else "s" }}{% endif %}</p>
+    <h1>{{ label }}</h1>
+    <p class="sub">Org {{ d.manifest.org.Name }} ({{ d.manifest.org_id }}) · collected {{ d.manifest.collected_at }} by {{ d.manifest.collecting_user }}</p>
+  </header>
+
+  <h2>Summary</h2>
+  <div class="headline">
+{% for line in d.summary %}
+    <p>{{ line }}</p>
+{% endfor %}
+  </div>
+{% if d.not_collected %}
+  <div class="note"><strong>Not collected.</strong>
+    <ul>
+{% for file, reason in d.not_collected.items() %}
+      <li><span class="mono">{{ file }}</span>: {{ reason }}</li>
+{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+  <h2>Needs a look ({{ flagged|length }})</h2>
+{% if flagged %}
+  <p>Changes that match a high-risk rule. A flag is a prompt to check that the change was intended and approved, not a finding that something is wrong.</p>
+  <div class="ev">
+  <table>
+    <tr><th>When</th><th>By</th><th>Area</th><th>Change</th><th>Why flagged</th></tr>
+{% for c in flagged %}
+    <tr>
+      <td class="when">{{ c.when|time }}</td>
+      <td>{{ c.by or "unknown user" }}</td>
+      <td>{{ c.section }}</td>
+      <td>{{ c.change }}</td>
+      <td class="why">{{ c.flags|join("; ") }}</td>
+    </tr>
+{% endfor %}
+  </table>
+  </div>
+{% else %}
+  <div class="ok">No change in this period matched a high-risk rule.</div>
+{% endif %}
+
+{% if d.changes %}
+  <h2>Who and where</h2>
+  <div class="cols">
+    <div>
+      <h3>By user</h3>
+      <table>
+        <tr><th>User</th><th class="num">Changes</th><th class="num">Flagged</th></tr>
+{% for c in d.by_user %}
+        <tr><td>{{ c.name or "unknown user" }}</td><td class="num">{{ c.changes }}</td><td class="num">{% if c.flagged %}{{ c.flagged }}{% else %}<span class="zero">0</span>{% endif %}</td></tr>
+{% endfor %}
+      </table>
+    </div>
+    <div>
+      <h3>By area</h3>
+      <table>
+        <tr><th>Setup area</th><th class="num">Changes</th><th class="num">Flagged</th></tr>
+{% for c in d.by_section %}
+        <tr><td>{{ c.name }}</td><td class="num">{{ c.changes }}</td><td class="num">{% if c.flagged %}{{ c.flagged }}{% else %}<span class="zero">0</span>{% endif %}</td></tr>
+{% endfor %}
+      </table>
+    </div>
+  </div>
+  <h3>By day (UTC)</h3>
+  <table>
+    <tr><th style="width:120px">Day</th><th class="num">Changes</th><th class="num">Flagged</th><th></th></tr>
+{% for c in d.by_day %}
+    <tr><td>{{ c.name }}</td><td class="num">{{ c.changes }}</td><td class="num">{% if c.flagged %}{{ c.flagged }}{% else %}<span class="zero">0</span>{% endif %}</td><td><span class="bar" style="width: {{ (c.changes / max_day * 100)|round(1) }}%"></span></td></tr>
+{% endfor %}
+  </table>
+
+  <h2>All changes ({{ d.changes|length }})</h2>
+  <p>Newest first. The same list is in <span class="mono">changes.csv</span>.</p>
+  <details{% if d.changes|length <= 40 %} open{% endif %}>
+    <summary>Show all {{ d.changes|length }} changes</summary>
+    <div class="ev">
+    <table>
+      <tr><th>When</th><th>By</th><th>Area</th><th>Change</th><th>Why flagged</th></tr>
+{% for c in d.changes %}
+      <tr>
+        <td class="when">{{ c.when|time }}</td>
+        <td>{{ c.by or "unknown user" }}</td>
+        <td>{{ c.section }}</td>
+        <td>{{ c.change }}</td>
+        <td class="why">{{ c.flags|join("; ") }}</td>
+      </tr>
+{% endfor %}
+    </table>
+    </div>
+  </details>
+{% endif %}
+
+  <h2>What this digest does not check</h2>
+  <div class="next">
+    <p>The digest shows what changed in Setup. It does not show whether the org is configured securely. It does not check:</p>
+    <ul>
+{% for item in not_checked %}
+      <li>{{ item }}</li>
+{% endfor %}
+    </ul>
+    <p class="sub">Salesforce keeps the Setup Audit Trail for 180 days only. Keep these digests, or export the trail, if you need a longer record.</p>
+{% if brand.AUTHOR %}
+    <p><strong>{{ brand.AUTHOR }}</strong>{% if brand.OFFER %}: {{ brand.OFFER }}{% endif %}{% if brand.URL %} <a href="{{ brand.URL }}">{{ brand.URL }}</a>{% endif %}</p>
+{% endif %}
+  </div>
+
+  <h2>How this was produced</h2>
+  <p>The Setup Audit Trail was read once, read-only, through the Salesforce APIs and stored on this computer as a snapshot with a SHA-256 hash for every data file. The digest is built from that snapshot by fixed rules. No data was sent anywhere else and no AI model was used.</p>
+{% if d.integrity_issues %}
+  <div class="warn"><strong>Snapshot integrity check failed.</strong>
+    <ul>
+{% for issue in d.integrity_issues %}
+      <li>{{ issue }}</li>
+{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+  <table>
+    <tr><th>Rule</th><th>Flags a change when</th></tr>
+    <tr><td>privileged permission granted</td><td>one of these is switched on in a profile or permission set: {{ d.settings.privileged_permissions|join(", ") }}</td></tr>
+    <tr><td>privileged permission set assigned</td><td>a user is given a permission set or group that carries Modify All Data, View All Data, Manage Users, Author Apex or Customize Application</td></tr>
+    <tr><td>done while logged in as another user</td><td>an admin made the change while logged in as someone else</td></tr>
+    <tr><td>security setting changed</td><td>the change is in: {{ d.settings.security_sections|join(", ") }}</td></tr>
+    <tr><td>connected app change</td><td>the change is in: {{ d.settings.connected_app_sections|join(", ") }}</td></tr>
+    <tr><td>change by integration user</td><td>the change was made by: {{ d.settings.integration_users|join(", ") or "no integration users listed in settings.yaml" }}</td></tr>
+  </table>
+
+  <footer>Generated by sfdigest {{ d.tool_version }} on {{ d.generated_at }} from snapshot <span class="mono">{{ d.snapshot_dir }}</span> (manifest SHA-256 <span class="mono">{{ d.manifest_sha256 }}</span>). Read-only; no changes were made to the Salesforce org.</footer>
+</main>
+</body>
+</html>
